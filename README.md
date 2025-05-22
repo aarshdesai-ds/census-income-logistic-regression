@@ -15,26 +15,90 @@ The model is trained and evaluated on the **UCI Adult Census Income Dataset**, o
 
 ---
 
-## 🧠 Why Logistic Regression?
+## 📚 Dataset Information
 
-Logistic Regression is:
-- **Statistically robust** and widely used for binary classification
-- **Interpretable**, allowing clear insight into which features contribute to high-income predictions
-- Efficient and easy to implement with a strong theoretical foundation
+### 📌 Overview
+
+- **Name**: Adult Census Income Dataset (aka "Census Income" or "Adult")
+- **Source**: [UCI Machine Learning Repository](https://archive.ics.uci.edu/ml/datasets/adult)
+- **Format**: `adult.data` (CSV-like, no headers)
+- **Size**: 32,561 rows × 15 columns
+- **Problem Type**: Binary classification
+- **Target Column**: `income` → `<=50K` or `>50K`
+
+### 📋 Original Columns
+
+| Column Name         | Description                                                   |
+|---------------------|---------------------------------------------------------------|
+| `age`               | Age of the individual (continuous)                            |
+| `workclass`         | Type of employment (e.g., Private, Government, Self-Employed) |
+| `fnlwgt`            | Sampling weight (used in census calculations)                 |
+| `education`         | Highest level of education attained                           |
+| `education-num`     | Numeric encoding of education level                           |
+| `marital-status`    | Marital status (e.g., Married, Divorced, Single)              |
+| `occupation`        | Job type (e.g., Exec-managerial, Tech-support)                |
+| `relationship`      | Relationship within household (e.g., Husband, Not-in-family)  |
+| `race`              | Race (e.g., White, Black, Asian-Pac-Islander)                 |
+| `sex`               | Gender                                                        |
+| `capital-gain`      | Investment income gains (continuous)                          |
+| `capital-loss`      | Investment income losses (continuous)                         |
+| `hours-per-week`    | Work hours per week (continuous)                              |
+| `native-country`    | Country of origin                                             |
+| `income`            | Target class: `<=50K` or `>50K`                               |
 
 ---
 
-## ✂️ Why Recursive Feature Elimination (RFE)?
+## 🧹 Data Preparation
 
-Real-world datasets often contain **redundant or non-informative features**. RFE works by:
-
-- Fitting the model with all features
-- Ranking them by importance (using model coefficients)
-- Removing the least important one
-- Repeating this process recursively until the desired number of features is selected
-
-This ensures the final model uses only the **most predictive subset**, improving performance and interpretability.
+- Loaded `.data` file using `pandas.read_csv()`
+- Replaced `" ?"` entries with `NaN` and removed incomplete rows
+- Encoded categorical columns using `LabelEncoder`
+- Normalized numerical features using `StandardScaler` for model convergence
 
 ---
 
+## 🔎 Modeling Pipeline
 
+### 1. Baseline Logistic Regression
+- Trained on all features to establish baseline accuracy and F1-score
+
+### 2. Recursive Feature Elimination (RFE)
+- Used RFE from `sklearn.feature_selection` to:
+  - Rank feature importance
+  - Test all subsets from 1 to 14 features
+  - Evaluate each using **weighted F1-score** on test data
+
+### 3. Model Evaluation
+- Compared models by number of features and their F1-scores
+- Identified optimal feature subset
+- Final model trained and evaluated on selected features
+
+---
+
+## 📈 Why F1-Score?
+
+- The dataset is slightly imbalanced (more `<=50K` than `>50K`)
+- **F1-score balances precision and recall**, providing a better measure of model effectiveness than raw accuracy
+- Used `average='weighted'` to account for both classes proportionally
+
+---
+
+## ✅ Results
+
+- Achieved strong F1-score with fewer than all features
+- Top predictors included:
+  - `education-num`
+  - `hours-per-week`
+  - `capital-gain`
+  - `occupation`
+  - `age`
+- Reduced dimensionality improved model generalization and interpretability
+
+---
+
+## 💻 Running Instructions
+
+### 1. Clone the Repository
+```bash
+git clone https://github.com/aarshdesai-ds/census-income-logistic-regression.git
+cd census-income-logistic-regression
