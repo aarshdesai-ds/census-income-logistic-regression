@@ -100,7 +100,6 @@ We use the **UCI Adult Census Income Dataset**, a classic benchmark for income c
 
 ## 💻 How to Run
 
-1. Clone the repository  
 
 1. Clone this repository  
    `git clone https://github.com/aarshdesai-ds/diamond-price-prediction.git`
