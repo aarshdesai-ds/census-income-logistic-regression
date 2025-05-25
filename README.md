@@ -1,104 +1,163 @@
-# 📊 Census Income Classification using Logistic Regression and Recursive Feature Elimination (RFE)
+# 💼 Census Income Prediction with Logistic Regression + RFE
 
-This project demonstrates how to use **Logistic Regression**, a classical and interpretable machine learning algorithm, in combination with **Recursive Feature Elimination (RFE)** to predict whether an individual earns **more than \$50,000 annually** based on their demographic and employment attributes.
+This project demonstrates how to apply **Logistic Regression** and **Recursive Feature Elimination (RFE)** to predict whether an individual earns more than \$50,000 per year, based on demographic and employment data.
 
-The model is trained and evaluated on the **UCI Adult Census Income Dataset**, one of the most widely used real-world benchmarks for income classification tasks.
+We use the **UCI Adult Census Income Dataset**, a classic benchmark for income classification tasks.
 
 ---
 
 ## 🎯 Project Goals
 
-- Build a reliable, interpretable binary classification model
-- Understand the relationship between features and income bracket
-- Apply **RFE** to reduce dimensionality and improve performance
-- Use **F1-score** to evaluate model robustness under class imbalance
+- Develop a binary classification model using Logistic Regression  
+- Interpret the impact of different features on income prediction  
+- Apply RFE to reduce dimensionality and highlight informative features  
+- Evaluate performance using **weighted F1-score** to handle class imbalance  
 
 ---
 
-## 📚 Dataset Information
+## 📚 Dataset Overview
 
-### 📌 Overview
+**Source:** [UCI Machine Learning Repository – Adult Dataset](https://archive.ics.uci.edu/ml/datasets/adult)  
+**Format:** CSV-like (`adult.data`)  
+**Size:** 32,561 records × 15 columns  
+**Task:** Binary Classification  
+**Target Variable:** `income` → `<=50K` or `>50K`
 
-- **Name**: Adult Census Income Dataset (aka "Census Income" or "Adult")
-- **Source**: [UCI Machine Learning Repository](https://archive.ics.uci.edu/ml/datasets/adult)
-- **Format**: `adult.data` (CSV-like, no headers)
-- **Size**: 32,561 rows × 15 columns
-- **Problem Type**: Binary classification
-- **Target Column**: `income` → `<=50K` or `>50K`
+### 📋 Features
 
-### 📋 Original Columns
-
-| Column Name         | Description                                                   |
-|---------------------|---------------------------------------------------------------|
-| `age`               | Age of the individual (continuous)                            |
-| `workclass`         | Type of employment (e.g., Private, Government, Self-Employed) |
-| `fnlwgt`            | Sampling weight (used in census calculations)                 |
-| `education`         | Highest level of education attained                           |
-| `education-num`     | Numeric encoding of education level                           |
-| `marital-status`    | Marital status (e.g., Married, Divorced, Single)              |
-| `occupation`        | Job type (e.g., Exec-managerial, Tech-support)                |
-| `relationship`      | Relationship within household (e.g., Husband, Not-in-family)  |
-| `race`              | Race (e.g., White, Black, Asian-Pac-Islander)                 |
-| `sex`               | Gender                                                        |
-| `capital-gain`      | Investment income gains (continuous)                          |
-| `capital-loss`      | Investment income losses (continuous)                         |
-| `hours-per-week`    | Work hours per week (continuous)                              |
-| `native-country`    | Country of origin                                             |
-| `income`            | Target class: `<=50K` or `>50K`                               |
+| Column Name       | Description                                 |
+|-------------------|---------------------------------------------|
+| age               | Age of the individual                       |
+| workclass         | Type of employment                          |
+| fnlwgt            | Sampling weight (used in census estimates)  |
+| education         | Highest education level                     |
+| education-num     | Numeric version of education                |
+| marital-status    | Marital status                              |
+| occupation        | Job role                                    |
+| relationship      | Household relationship                      |
+| race              | Race category                               |
+| sex               | Gender                                       |
+| capital-gain      | Capital gains                               |
+| capital-loss      | Capital losses                              |
+| hours-per-week    | Weekly working hours                        |
+| native-country    | Country of origin                           |
+| income            | Target variable (<=50K or >50K)             |
 
 ---
 
 ## 🧹 Data Preparation
 
-- Loaded `.data` file using `pandas.read_csv()`
-- Replaced `" ?"` entries with `NaN` and removed incomplete rows
-- Encoded categorical columns using `LabelEncoder`
-- Normalized numerical features using `StandardScaler` for model convergence
+- Loaded `.data` file using `pandas.read_csv()`  
+- Removed records with `"?"` and missing values  
+- Encoded categorical columns using `LabelEncoder`  
+- Standardized numerical features using `StandardScaler`  
 
 ---
 
 ## 🔎 Modeling Pipeline
 
-### 1. Baseline Logistic Regression
-- Trained on all features to establish baseline accuracy and F1-score
+### 1. 📉 Baseline Logistic Regression
 
-### 2. Recursive Feature Elimination (RFE)
-- Used RFE from `sklearn.feature_selection` to:
-  - Rank feature importance
-  - Test all subsets from 1 to 14 features
-  - Evaluate each using **weighted F1-score** on test data
+- Trained on all features  
+- Evaluated using accuracy and **F1-score**  
+- Served as a performance benchmark  
 
-### 3. Model Evaluation
-- Compared models by number of features and their F1-scores
-- Identified optimal feature subset
-- Final model trained and evaluated on selected features
+### 2. 🔍 Recursive Feature Elimination (RFE)
 
----
+- Employed RFE with Logistic Regression as the estimator  
+- Ranked and recursively eliminated the least important features  
+- Evaluated performance across feature subsets (1 to 14 features)  
+- Chose optimal feature subset based on **weighted F1-score**
 
-## 📈 Why F1-Score?
+### 3. ✅ Final Model
 
-- The dataset is slightly imbalanced (more `<=50K` than `>50K`)
-- **F1-score balances precision and recall**, providing a better measure of model effectiveness than raw accuracy
-- Used `average='weighted'` to account for both classes proportionally
+- Final model trained on optimal subset (based on RFE results)  
+- Achieved better generalization and simpler interpretation  
 
 ---
 
-## ✅ Results
+## 📊 Evaluation Metrics
 
-- Achieved strong F1-score with fewer than all features
+- Used **weighted F1-score** due to class imbalance  
+- Also reported **accuracy** and **confusion matrix**  
+- Visualized feature rankings and model performance  
+
+---
+
+## ✅ Results Summary
+
+- Achieved strong F1-score with fewer features  
 - Top predictors included:
   - `education-num`
   - `hours-per-week`
   - `capital-gain`
   - `occupation`
-  - `age`
-- Reduced dimensionality improved model generalization and interpretability
+  - `age`  
+- Dimensionality reduction via RFE enhanced interpretability  
+- Logistic Regression performed well with normalized, selected features
 
 ---
 
-## 💻 Running Instructions
+## 💻 How to Run
 
-### 1. Clone the Repository
-```bash
-git clone https://github.com/aarshdesai-ds/census-income-logistic-regression.git
-cd census-income-logistic-regression
+1. Clone the repository  
+
+1. Clone this repository  
+   `git clone https://github.com/aarshdesai-ds/diamond-price-prediction.git`
+2. Launch the notebook  
+   `jupyter notebook CensusAnalysis.ipynb`
+3. Run all cells to reproduce the workflow and results
+
+
+--- 
+
+
+
+# ✅ Key Takeaways
+
+This project showcases the effectiveness of **Logistic Regression** combined with **Recursive Feature Elimination (RFE)** for binary income classification using the UCI Adult Census dataset. Below are the major insights and outcomes from the analysis:
+
+---
+
+## 🔍 Interpretability with Performance
+
+- Logistic Regression provided a **transparent, interpretable model** that helps understand the impact of each feature on income prediction.
+- Despite its simplicity, it achieved **strong predictive performance**, especially when paired with good preprocessing and feature selection.
+
+---
+
+## 🔄 Dimensionality Reduction via RFE
+
+- **Recursive Feature Elimination (RFE)** ranked and removed less important features iteratively.
+- The best performance was achieved **without using all 14 features**, confirming that not all input variables contribute meaningfully.
+- Dimensionality reduction improved **generalization**, reduced **overfitting risk**, and made the model easier to explain.
+
+---
+
+## ⚖️ Importance of F1-Score
+
+- The target variable was **imbalanced** (`<=50K` being more frequent than `>50K`).
+- **Weighted F1-score** provided a more reliable performance metric than accuracy.
+- This ensured the model was evaluated based on both **precision and recall**, accounting for both majority and minority classes.
+
+---
+
+## 🌟 Key Predictive Features
+
+Based on RFE and coefficient analysis, the most influential features were:
+
+- `education-num`
+- `hours-per-week`
+- `capital-gain`
+- `occupation`
+- `age`
+
+These features aligned with real-world intuitions about income determinants.
+
+---
+
+## 📈 Conclusion
+
+This project highlights that **classical machine learning models**, when combined with thoughtful preprocessing and feature selection, can achieve **high accuracy and interpretability**—making them ideal for real-world applications where explainability matters.
+
+
