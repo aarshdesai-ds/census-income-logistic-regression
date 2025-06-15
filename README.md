@@ -102,10 +102,10 @@ We use the **UCI Adult Census Income Dataset**, a classic benchmark for income c
 
 
 1. Clone this repository  
-   `git clone https://github.com/aarshdesai-ds/diamond-price-prediction.git`
-2. Launch the notebook  
+   `git clone https://github.com/aarshdesai-ds/census-income-logistic-regression.git`
+3. Launch the notebook  
    `jupyter notebook CensusAnalysis.ipynb`
-3. Run all cells to reproduce the workflow and results
+4. Run all cells to reproduce the workflow and results
 
 
 --- 
