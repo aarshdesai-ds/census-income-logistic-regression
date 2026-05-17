@@ -24,7 +24,7 @@ A binary classification study using the UCI Adult Census dataset to predict whet
 This project analyzes **32,561 individuals** from the 1994 U.S. Census to evaluate two approaches to binary income classification:
 
 1. **Baseline Logistic Regression** — trained on all 99 features after one-hot encoding
-2. **RFE-Optimized Logistic Regression** — trained on the 5 most informative numeric features selected via Recursive Feature Elimination
+2. **RFE-Optimized Logistic Regression** — trained on the 5 most informative features selected via Recursive Feature Elimination
 
 The core question: *can a dramatically simplified model (5 features vs. 99) match the predictive power of a full-feature baseline — and which individual attributes drive income most?*
 
@@ -93,69 +93,36 @@ The core question: *can a dramatically simplified model (5 features vs. 99) matc
 
 ### Data Cleaning
 
-Missing values in the raw file are encoded as `" ?"` strings in three columns: `workclass`, `occupation`, and `native-country`. These are replaced with `NaN` at load time and rows are dropped. `fnlwgt` (sampling weight) is removed as it is a census estimation artifact, not an individual-level predictor.
-
-```
-Rows after cleaning : 32,561  (no rows lost — NaN replacement at read time)
-Columns after drop  : 14  (fnlwgt removed)
-```
+Missing values in the raw file are encoded as `"?"` strings in three columns — `workclass`, `occupation`, and `native-country`. These are replaced with `NaN` at load time and the affected rows are dropped. `fnlwgt` (census sampling weight) is removed as it is an estimation artifact rather than an individual-level predictor.
 
 ### Feature Encoding
 
-Binary and categorical columns are encoded before modelling:
-
-```
-sex          : Male → 0,  Female → 1
-income-group : <=50K → 0, >50K → 1
-
-Remaining 7 categorical columns → one-hot encoded via pd.get_dummies()
-  workclass (8 categories)  → 7 dummies
-  education (16 categories) → 15 dummies
-  marital-status (7)        → 6 dummies
-  occupation (14)           → 13 dummies
-  relationship (6)          → 5 dummies
-  race (5)                  → 4 dummies
-  native-country (42)       → 41 dummies
-  ─────────────────────────────────────
-  Total dummy columns       → 93
-```
-
-**Final feature matrix: 99 columns** (5 numeric + 1 binary sex + 93 dummies).
+- `sex` and `income-group` are binary-mapped to integers
+- The remaining 7 categorical columns are one-hot encoded via `pd.get_dummies()`, producing **93 dummy variables**
+- Combined with 5 numeric columns and 1 binary column, the final feature matrix has **99 columns**
 
 ### Normalization
 
-Z-score standardization is applied to the 5 numeric columns using a custom `standard_scalar()` function, fit on the training set and applied to both train and test:
-
-```
-Z = (X − μ_train) / σ_train
-
-Applied to: age, education-years, capital-gain, capital-loss, hours-per-week
-```
+Z-score standardization is applied to the 5 numeric columns (`age`, `education-years`, `capital-gain`, `capital-loss`, `hours-per-week`), fit on the training set and applied to both train and test to prevent data leakage.
 
 ### Train / Test Split
 
-```
-Total samples : 32,561
-Training set  : 22,792  (70%)
-Test set      :  9,769  (30%)
-random_state  : 42
-```
+| Set | Rows | Share |
+|-----|-----:|------:|
+| Training | 22,792 | 70% |
+| Test | 9,769 | 30% |
 
-### Model 1: Baseline Logistic Regression (99 Features)
+*`random_state=42`*
 
-Standard `sklearn` Logistic Regression trained on all 99 normalized features. Evaluated using accuracy, per-class precision/recall/F1, and a confusion matrix on the held-out test set.
+### Model 1 — Baseline Logistic Regression
 
-### Model 2: RFE-Optimized Logistic Regression (5 Features)
+Standard Logistic Regression trained on all 99 normalized features. Evaluated using accuracy, per-class precision / recall / F1, and a confusion matrix on the held-out test set.
 
-Recursive Feature Elimination iterates from 1 to 5 features (the 5 numeric columns), training and evaluating a separate Logistic Regression at each step. The feature count that maximizes the **weighted F1-score** on the test set is selected as the final model.
+### Model 2 — RFE-Optimized Logistic Regression
 
-```
-RFE candidate pool : age, education-years, capital-gain, capital-loss, hours-per-week
-Selection criterion: weighted F1-score (accounts for class imbalance)
-Optimal n_features : 5
-```
+Recursive Feature Elimination iterates from 1 to 5 features (the 5 numeric columns), training and evaluating a separate Logistic Regression at each step. The feature count that maximizes **weighted F1-score** on the test set is selected as the final model.
 
-**Weighted F1-score** is used as the primary metric throughout because accuracy is misleading under class imbalance (a model predicting ≤50K every time scores 75.9% accuracy while being useless).
+**Weighted F1-score** is used as the primary metric throughout — accuracy alone is misleading under class imbalance (a model predicting ≤50K every time scores 75.9% while being entirely useless for the >50K class).
 
 ---
 
@@ -163,30 +130,21 @@ Optimal n_features : 5
 
 ### 1. A 5-Feature Model Matches a 99-Feature Baseline
 
-The RFE model using only 5 numeric features achieves effectively identical test accuracy (~82%) and slightly better weighted F1 (~0.807 vs 0.80) compared to the full 99-feature baseline — while being **20× simpler**.
+The RFE model using only 5 numeric features achieves effectively identical test accuracy (~82%) and a slightly better weighted F1 (~0.807 vs 0.80) compared to the full 99-feature baseline — while being **20× simpler**.
 
 ### 2. Capital Gain Is the Single Strongest Predictor
 
-With just `capital-gain` alone (1-feature model), RFE achieves:
-- F1 of **0.8852** on the majority class (≤50K)
-- F1 of **0.3268** on the minority class (>50K)
+With `capital-gain` alone, RFE achieves an F1 of **0.8852** on the majority class and **0.3268** on the minority class. No other single feature comes close, reflecting the strong real-world link between investment income and total earnings bracket.
 
-No other single feature comes close, reflecting the strong real-world link between investment income and total earnings bracket.
+### 3. Weighted F1 Exposes What Accuracy Hides
 
-### 3. Betting on Weighted F1 Over Accuracy Is Critical
-
-The dataset is 75.9% class-0. A naïve majority-class classifier would achieve 75.9% accuracy but 0% recall on >50K earners. The baseline Logistic Regression achieves:
-
-- **Recall of 0.95** on ≤50K (captures nearly all)
-- **Recall of 0.40** on >50K (misses 60% of high earners)
-
-This asymmetry is invisible to accuracy — weighted F1 surfaces it.
+The baseline model achieves **0.95 recall on ≤50K** but only **0.40 recall on >50K** — meaning it misclassifies 60% of high earners as low earners. This asymmetry is invisible to accuracy but fully surfaces in the F1 breakdown.
 
 ### 4. RFE Feature Progression
 
 Each added feature meaningfully improves minority-class detection:
 
-| # Features | Features | F1 — ≤50K | F1 — >50K |
+| # Features | Features Selected | F1 — ≤50K | F1 — >50K |
 |:---:|---|:---:|:---:|
 | 1 | `capital-gain` | 0.8852 | 0.3268 |
 | 2 | `education-years`, `capital-gain` | 0.8877 | 0.3950 |
@@ -198,23 +156,23 @@ Each added feature meaningfully improves minority-class detection:
 
 | Rank | Feature | Insight |
 |:---:|---|---|
-| 1 | `capital-gain` | Strongest predictor — investment returns signal high earner status directly |
-| 2 | `education-years` | Each additional year of education measurably shifts income probability |
-| 3 | `age` | Earnings accumulate with career experience; strong monotonic effect |
-| 4 | `capital-loss` | Even recording losses signals active investment — a high-earner behavior |
+| 1 | `capital-gain` | Investment returns are the strongest signal of high earner status |
+| 2 | `education-years` | Each additional year of education shifts income probability measurably |
+| 3 | `age` | Earnings accumulate with career experience — strong monotonic effect |
+| 4 | `capital-loss` | Recording investment losses signals active market participation — a high-earner behavior |
 | 5 | `hours-per-week` | More hours correlates with salary-driven roles and higher pay bands |
 
-### 6. Confusion Matrix Reveals Systematic FN Problem
+### 6. Confusion Matrix Reveals a Systematic False Negative Problem
 
 ```
 Baseline model — Test Set (9,769 samples):
 
                   Predicted ≤50K    Predicted >50K
-Actual ≤50K           7,049              406          ← 5.4% FP rate
-Actual >50K           1,390              924          ← 60.2% FN rate
+Actual ≤50K           7,049              406       ← 5.4% false positive rate
+Actual >50K           1,390              924       ← 60.2% false negative rate
 ```
 
-The model correctly identifies 94.6% of low earners but misclassifies **1,390 high earners** (60%) as low earners. This is the central limitation of a linear classifier on an imbalanced dataset without resampling or cost-sensitive learning.
+The model correctly identifies 94.6% of low earners but misclassifies **1,390 high earners** as low earners. This is the central limitation of a linear classifier on an imbalanced dataset without resampling or cost-sensitive adjustments.
 
 ---
 
@@ -291,34 +249,32 @@ pip install pandas numpy scikit-learn jupyter
 
 ## Ideas for Extension
 
-The current analysis is a solid foundation. Here are concrete directions to take it further:
-
 ### 1. Handle Class Imbalance Directly
-The 75.9% / 24.1% split causes the model to miss 60% of high earners. Applying **SMOTE** (Synthetic Minority Oversampling Technique) or **class_weight='balanced'** in Logistic Regression would force the model to pay more attention to the minority class and likely improve >50K recall substantially.
+The 75.9% / 24.1% split causes the model to miss 60% of high earners. Applying **SMOTE** (Synthetic Minority Oversampling) or setting `class_weight='balanced'` in Logistic Regression would force the model to pay more attention to the minority class and likely improve >50K recall substantially.
 
 ### 2. Add Non-Linear Models for Comparison
-Logistic Regression assumes a linear decision boundary. Compare performance against **Random Forest**, **Gradient Boosting (XGBoost)**, and **SVM** to quantify how much predictive power is left on the table by the linear assumption. This is especially relevant given the interaction between education, occupation, and capital gains.
+Logistic Regression assumes a linear decision boundary. Comparing against **Random Forest**, **Gradient Boosting (XGBoost)**, and **SVM** would quantify how much predictive power is left on the table — especially given the likely interactions between education, occupation, and capital gains.
 
 ### 3. Extend RFE to All 99 Features
-The current RFE is restricted to the 5 numeric features. Extending it across all 99 features (including dummy variables) using `sklearn`'s full RFE would reveal whether any categorical sub-groups — specific occupations, marital statuses, or countries — contribute independently beyond what the numeric features already capture.
+The current RFE is restricted to the 5 numeric columns. Running it across all 99 features (including dummies) would reveal whether any categorical sub-groups — specific occupations, marital statuses, or countries — add independent signal beyond what the numeric features already capture.
 
 ### 4. Coefficient Analysis and Odds Ratios
-Logistic Regression coefficients can be exponentiated to produce **odds ratios** — a direct, interpretable measure of how each feature multiplies the odds of earning >50K. Plotting these for the final 5-feature model and a selected subset of categorical dummies would make the model's logic transparent and portfolio-ready.
+Logistic Regression coefficients can be exponentiated to produce **odds ratios** — a direct, interpretable measure of how each feature multiplies the odds of earning >50K. Plotting these for the final 5-feature model makes the model's logic transparent and is a strong addition to any portfolio write-up.
 
 ### 5. Calibration Analysis
-A well-performing classifier isn't necessarily well-calibrated. Plot a **reliability diagram** (predicted probability vs. actual frequency) to test whether the model's confidence scores are trustworthy. Logistic Regression is often well-calibrated, but class imbalance and feature selection can distort this.
+A well-performing classifier isn't necessarily well-calibrated. Plotting a **reliability diagram** (predicted probability vs. actual frequency) tests whether the model's confidence scores are trustworthy — especially useful if the output probabilities are used downstream for decision-making.
 
 ### 6. Cross-Validation Instead of a Single Split
-The current 70/30 split gives one estimate of generalization. Replacing it with **5-fold or 10-fold stratified cross-validation** would produce a distribution of F1 scores and quantify model stability — especially important for the minority class where a single unlucky split can swing results.
+The current 70/30 split produces one estimate of generalization. Replacing it with **10-fold stratified cross-validation** would give a distribution of F1 scores and quantify model stability — particularly important for the minority class where a single unlucky split can noticeably swing results.
 
 ### 7. Demographic Bias Audit
-The dataset contains `sex`, `race`, and `native-country`. After training, evaluate model performance **separately by demographic group** to check whether the model's error rates are uniform or systematically higher for specific populations. This is a standard fairness analysis and increasingly important for any model trained on census data.
+The dataset contains `sex`, `race`, and `native-country`. Evaluating model performance **separately by demographic group** after training checks whether error rates are uniform or systematically higher for specific populations — a standard fairness analysis and increasingly expected for any model trained on census data.
 
-### 8. Optimal Logistic Regression Exponent (Pythagorean Analogy)
-Inspired by the Pythagorean Expectation approach in sports analytics: rather than using raw logistic output, fit a **power-transformed probability model** where the exponent is tuned to minimize Brier Score on the training set. This is an unconventional but potentially informative extension for comparing to the standard logistic curve.
+### 8. Feature Interaction Terms
+Income prediction likely involves non-additive effects — for example, `capital-gain` may matter more for highly educated individuals. Adding **interaction terms** (e.g., `capital-gain × education-years`, `age × hours-per-week`) and re-running RFE would test whether interactions add predictive power beyond main effects.
 
-### 9. Feature Interaction Terms
-Income prediction likely involves non-additive effects — for example, `capital-gain` may matter more for highly educated individuals. Adding **interaction terms** (e.g., `capital-gain × education-years`, `age × hours-per-week`) to the feature matrix and re-running RFE would test whether any interactions add predictive power beyond main effects.
+### 9. Threshold Tuning
+The default classification threshold is 0.5. Lowering it (e.g., to 0.3) would increase recall for the >50K class at the cost of more false positives. Plotting the **precision-recall curve** and selecting a threshold based on the use case (e.g., minimizing missed high earners) is a practical and often high-impact step.
 
 ### 10. Deploy as an Interactive Web App
 Wrap the final 5-feature model in a **Streamlit app** with input sliders for age, education years, capital gain/loss, and hours per week — and display a real-time income probability estimate. The simplicity of the 5-feature model makes this straightforward to deploy and a strong portfolio demonstration.
